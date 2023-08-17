@@ -5,7 +5,7 @@ if (isset($_POST['insert_1m'])) {
     insert();
 }
 if (isset($_POST['export_1m'])) {
-    export_file_csv();
+    exportFileCsv();
     die();
 }
 ?>
@@ -27,7 +27,7 @@ if (isset($_POST['export_1m'])) {
 <?php
 
 //tạo dữ liệu mẫu
-function fake_data()
+function fakeData()
 {
     $records = [];
     for ($i = 0; $i < 1000000; $i++) {
@@ -57,7 +57,7 @@ function insert()
     }
 
     // Chia thành các chunk nhỏ để insert một lúc
-    $values_chunked = array_chunk(fake_data(), 5000);
+    $values_chunked = array_chunk(fakeData(), 5000);
 
     //2k->17.6s, 3k->17.1s, 5k->17.16, 7k->16.50  10k->18.48  12k->17.59
 
@@ -83,19 +83,14 @@ function insert()
 }
 
 //xuất 1 triệu records ra file csv
-function export_file_csv()
+function exportFileCsv()
 {
     // Truy cập biến kết nối từ $GLOBALS
     $conn = $GLOBALS['conn'];
 
     header("Content-Type: text/csv");
-    header("Content-Disposition: attachment; filename=file.csv");
+    header("Content-Disposition: attachment; filename=data.csv");
     $csv_file  = fopen("php://output", "wb");
-    // $csv_file  = fopen('data.csv', 'w');
-    // if (!$csv_file) {
-    //     die('Could not open file for writing.');
-    // }
-    // Ghi tiêu đề (nếu cần)
     $column_headers = ['ID', 'AGE']; // Thay bằng các tiêu đề thực tế
 
     fputcsv($csv_file, $column_headers);
