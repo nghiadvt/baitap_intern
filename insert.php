@@ -1,11 +1,12 @@
 <?php
 require('config.php');
+require('queries.php');
 
 if (isset($_POST['insert_1m'])) {
-    insert();
+    insert_1m_records();
 }
 if (isset($_POST['export_1m'])) {
-    exportFileCsv();
+    export_1m_records_file_csv();
     die();
 }
 ?>
@@ -27,9 +28,9 @@ if (isset($_POST['export_1m'])) {
 <?php
 
 //tạo dữ liệu mẫu
-function fakeData()
+function fake_data()
 {
-    $records = [];
+    $records = array();
     for ($i = 0; $i < 1000000; $i++) {
         $age = rand(1, 120);
         $records[] = "($age)";
@@ -38,86 +39,103 @@ function fakeData()
 }
 
 //insert 1 million records into the db
-function insert()
+function insert_1m_records()
 {
+    define('TABLE_NAME', 'Persons');
+    $table = TABLE_NAME;
+
     // Truy cập biến kết nối từ $GLOBALS
-    $conn = $GLOBALS['conn'];
+    $conn = $GLOBALS['g_conn'];
 
-    //truncate du liệu cũ trước khi insert dữ liệu mới vào.
-    $sql_check = 'SELECT COUNT(*) as rowCount FROM Persons';
-    $result_check = $conn->query($sql_check);
+    try {
+        // Bắt đầu transaction
+        $conn->begin_transaction();
 
-    if ($result_check && $result_check->num_rows > 0) {
-        $row = $result_check->fetch_assoc();
-        $row_count = $row['rowCount'];
-        if ($row_count > 0) {
-            $sql_truncate = "TRUNCATE TABLE Persons";
-            $conn->query($sql_truncate);
+        //xóa records cũ trước khi insert records mới vào
+        $result_check = check_row_count($table);
+        if ($result_check > 0) {
+            truncate_table($table);
         }
+        // Chia thành các chunk nhỏ để insert một lúc
+        $values_chunked = array_chunk(fake_data(), 5000);
+        // thời gian bắt đầu thực hiện câu truy vấn
+        $start_time = microtime(true);
+        // Chèn dữ liệu vào cơ sở dữ liệu
+        foreach ($values_chunked as $chunk) {
+            $values = implode(', ', $chunk);
+            insert_record($table, $values);
+        }
+        // Kết thúc transaction
+        $conn->commit();
+        //thời gian kết thúc câu truy vấn
+        $end_time = microtime(true);
+        // tổng thời gian insert 1 triệu records vào db
+        $execution_time = ($end_time - $start_time);
+        echo 'Insert dữ liệu thành công!' . '<br>';
+        echo 'Thời gian thực hiện: ' . $execution_time . ' s' . '<br>';
+    } catch (Exception $e) {
+        // Nếu có lỗi xảy ra, rollback transaction
+        $conn->rollback();
+        echo 'Có lỗi xảy ra: ' . $e->getMessage();
     }
-
-    // Chia thành các chunk nhỏ để insert một lúc
-    $values_chunked = array_chunk(fakeData(), 5000);
-
-    //2k->17.6s, 3k->17.1s, 5k->17.16, 7k->16.50  10k->18.48  12k->17.59
-
-    // thời gian thực hiện câu truy vấn
-    $start_time = microtime(true);
-
-    // Chèn dữ liệu vào cơ sở dữ liệu
-    foreach ($values_chunked as $chunk) {
-        $values = implode(', ', $chunk);
-        $sql = "INSERT INTO Persons (age) VALUES $values";
-        $conn->query($sql);
-    }
-    //thời gian kết thúc câu truy vấn
-    $end_time = microtime(true);
-
-    // tổng thời gian insert 1 triệu records vào db
-    $execution_time = ($end_time - $start_time);
-    echo 'Insert dữ liệu thành công!' . '<br>';
-    echo 'Thời gian thực hiện: ' . $execution_time . ' s' . '<br>';
-
     // Đóng kết nối
     $conn->close();
 }
 
 //xuất 1 triệu records ra file csv
-function exportFileCsv()
+function export_1m_records_file_csv()
 {
+
     // Truy cập biến kết nối từ $GLOBALS
-    $conn = $GLOBALS['conn'];
+    $conn = $GLOBALS['g_conn'];
+    // Danh sách cột cần chọn
+    $selectedColumns = array('ID', 'Age');
 
     header("Content-Type: text/csv");
     header("Content-Disposition: attachment; filename=data.csv");
     $csv_file  = fopen("php://output", "wb");
-    $column_headers = ['ID', 'AGE']; // Thay bằng các tiêu đề thực tế
 
-    fputcsv($csv_file, $column_headers);
+    // Bắt đầu transaction
+    $conn->begin_transaction();
 
-    $chunk_size = 1000; // Số lượng bản ghi trong mỗi chunk
-    $start = 0;
-    $record_count = 0; // Số lượng bản ghi đã xuất
-    $max_records = 1000000; // Số lượng bản ghi tối đa
+    try {
+        // Thay bằng các tiêu đề thực tế
+        fputcsv($csv_file, $selectedColumns);
 
-    while ($record_count < $max_records) {
-        // $sql = "SELECT * FROM Persons LIMIT $start, $chunkSize";
-        $sql = "SELECT * FROM Persons WHERE ID > $start ORDER BY ID LIMIT $chunk_size";
-        $result = $conn->query($sql);
+        // Số lượng bản ghi trong mỗi chunk
+        $chunk_size = 1000;
+        $start = 0;
+        // Số lượng bản ghi đã xuất
+        $record_count = 0;
+        // Số lượng bản ghi tối đa
+        $max_records = 1000000;
 
-        if ($result->num_rows > 0) {
-            while ($row = $result->fetch_assoc()) {
-                fputcsv($csv_file, $row);
-                $record_count++;
+        while ($record_count < $max_records) {
+
+            // Gọi hàm select_records để thực hiện câu truy vấn SELECT
+            $result = select_records("Persons", $selectedColumns, "ID > $start", "ID", $chunk_size);
+
+            // insert dữ liệu từ db vào file csv vừa tạo
+            if ($result !== false) {
+                while ($row = $result->fetch_assoc()) {
+                    fputcsv($csv_file, $row);
+                    $record_count++;
+                }
+            } else {
+                // Kết thúc nếu không còn dữ liệu
+                break;
             }
-        } else {
-            break; // Kết thúc nếu không còn dữ liệu
+            $start += $chunk_size;
         }
-
-        $start += $chunk_size;
+        // Đóng tệp CSV
+        fclose($csv_file);
+        // Kết thúc transaction
+        $conn->commit();
+    } catch (Exception $e) {
+        // Nếu có lỗi xảy ra, rollback transaction và in ra thông báo lỗi
+        $conn->rollback();
+        echo 'Có lỗi xảy ra: ' . $e->getMessage();
     }
-    // Đóng tệp CSV
-    fclose($csv_file);
     // Đóng kết nối
     $conn->close();
     header('Location:index.php');
