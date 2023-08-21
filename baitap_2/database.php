@@ -2,14 +2,17 @@
 require('config.php');
 if ($conn) {
     $dbname = 'baitap_intern';
+    // Danh sách các bảng bạn muốn xóa
+    $tables_to_delete = array("users", "posts");
+
     // Drop all tables in the database
-    $conn->query("SET FOREIGN_KEY_CHECKS = 0"); // Disable foreign key checks temporarily
-    $result = $conn->query("SHOW TABLES");
-    while ($table = $result->fetch_assoc()) {
-        $tableName = $table["Tables_in_" . $dbname];
-        $conn->query("DROP TABLE $tableName");
+    // Disable foreign key checks temporarily
+    $conn->query("SET FOREIGN_KEY_CHECKS = 0");
+    foreach ($tablesToDelete as $tableName) {
+        // Xóa bảng
+        $conn->query("DROP TABLE IF EXISTS $tableName");
     }
-    $conn->query("SET FOREIGN_KEY_CHECKS = 1"); // Enable foreign key checks again
+    $conn->query("SET FOREIGN_KEY_CHECKS = 1");
 
 
     // Câu lệnh SQL để tạo bảng users
@@ -32,14 +35,16 @@ if ($conn) {
     // Thực hiện câu lệnh tạo bảng users
     if ($conn->query($sql_users) === TRUE) {
         echo "Tạo bảng users thành công!<br>";
-        $password = password_hash("password", PASSWORD_DEFAULT); // mật khẩu : password
-        $sampleData = [
+        // mật khẩu : password
+        $password = password_hash("password", PASSWORD_DEFAULT);
+        //fake data users
+        $fake_data = [
             ['username' => 'admin', 'email' => 'admin@gmail.com', 'password' => $password],
             ['username' => 'user', 'email' => 'user@gmail.com', 'password' => $password],
             // Thêm các dữ liệu mẫu khác tại đây
         ];
 
-        foreach ($sampleData as $data) {
+        foreach ($fake_data as $data) {
             $email = $data['email'];
             $password = $data['password'];
             $username = $data['username'];

@@ -1,8 +1,9 @@
 <?php
-$hostname = 'localhost'; // Địa chỉ IP MySQL server
-$username = 'root'; // Tên người dùng MySQL
-$password = 'cms-8341'; // Mật khẩu MySQL
-$database = 'baitap_intern'; // Tên cơ sở dữ liệu MySQL
+
+$hostname = 'localhost';
+$username = 'root'; 
+$password = 'cms-8341'; 
+$database = 'baitap_intern'; 
 
 // Tạo kết nối
 $conn = new mysqli($hostname, $username, $password, $database);
