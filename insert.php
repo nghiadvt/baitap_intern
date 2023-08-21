@@ -2,6 +2,8 @@
 require('config.php');
 require('queries.php');
 
+define('TABLE_NAME', 'Persons');
+
 if (isset($_POST['insert_1m'])) {
     insert_1m_records();
 }
@@ -41,9 +43,7 @@ function fake_data()
 //insert 1 million records into the db
 function insert_1m_records()
 {
-    define('TABLE_NAME', 'Persons');
     $table = TABLE_NAME;
-
     // Truy cập biến kết nối từ $GLOBALS
     $conn = $GLOBALS['g_conn'];
 
@@ -85,15 +85,16 @@ function insert_1m_records()
 //xuất 1 triệu records ra file csv
 function export_1m_records_file_csv()
 {
+    $table = TABLE_NAME;
 
     // Truy cập biến kết nối từ $GLOBALS
     $conn = $GLOBALS['g_conn'];
     // Danh sách cột cần chọn
     $selectedColumns = array('ID', 'Age');
 
-    header("Content-Type: text/csv");
-    header("Content-Disposition: attachment; filename=data.csv");
-    $csv_file  = fopen("php://output", "wb");
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename=data.csv');
+    $csv_file  = fopen('php://output', 'wb');
 
     // Bắt đầu transaction
     $conn->begin_transaction();
@@ -113,7 +114,7 @@ function export_1m_records_file_csv()
         while ($record_count < $max_records) {
 
             // Gọi hàm select_records để thực hiện câu truy vấn SELECT
-            $result = select_records("Persons", $selectedColumns, "ID > $start", "ID", $chunk_size);
+            $result = select_records($table, $selectedColumns, 'ID > \'$start\'', 'ID', $chunk_size);
 
             // insert dữ liệu từ db vào file csv vừa tạo
             if ($result !== false) {

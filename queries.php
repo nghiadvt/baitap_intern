@@ -17,7 +17,6 @@ function insert_record($table, $values)
     return $conn->query($sql);
 }
 
-
 /**
  * Hàm check_row_count: Thực hiện kiểm tra xem có dữ liệu từ bảng trong cơ sở dữ liệu.
  *
