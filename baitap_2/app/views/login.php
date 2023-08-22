@@ -20,6 +20,12 @@
         <label for="password">Mật khẩu:</label>
         <input type="password" id="password" name="password" required><br><br>
 
+        <?php
+        if (isset($_SESSION["login_error"])) {
+            echo "<p style='color: red;'>" . $_SESSION["login_error"] . "</p>";
+            unset($_SESSION["login_error"]);
+        }
+        ?>
         <input type="submit" value="Đăng nhập">
     </form>
 </body>

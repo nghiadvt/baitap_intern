@@ -1,22 +1,28 @@
 <?php
+session_start();
+
 require_once('../controllers/AuthController.php');
 require_once('../controllers/PostController.php');
-require_once('../models/post.php');
+require_once('../models/Post.php');
 
+$authController = new AuthController($conn);
 $postController = new PostController($conn);
 
+if (!$authController->isLoggedIn()) {
+    // Nếu chưa đăng nhập, điều hướng về trang đăng nhập
+    header("Location: login.php");
+    exit();
+}
+$user_id = $_SESSION['user_id'];
 // Xử lý thêm bài viết mới
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = $_POST['title'];
-    $content = $_POST['content'];
-    $user_id = 1; // Thay bằng ID người dùng thực tế
-
-    if ($postController->addPost($title, $content, $user_id)) {
-        echo "Thêm bài viết thành công!";
-        header("location:dashboard.php");
-    } else {
-        echo "Thêm bài viết thất bại!";
-    }
+    $data = [
+        'title' => $_POST['title'],
+        'content' => $_POST['content'],
+        'user_id' => $user_id
+    ];
+    $postController = new PostController($conn);
+    $postController->addPost($data);
 }
 ?>
 

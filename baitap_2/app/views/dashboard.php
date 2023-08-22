@@ -5,8 +5,8 @@ require_once('../controllers/AuthController.php');
 require_once('../controllers/UserController.php');
 require_once('../controllers/PostController.php');
 
-$authController = new AuthController();
-$userController = new UserController();
+$authController = new AuthController($conn);
+$userController = new UserController($conn);
 $postController = new PostController($conn);
 
 // Kiểm tra đăng nhập
@@ -16,36 +16,40 @@ if (!$authController->isLoggedIn()) {
     exit();
 }
 
-// Lấy thông tin người dùng từ cơ sở dữ liệu
-$user = $userController->getUserById($_SESSION['user_id']);
 
-// Lấy danh sách bài viết của người dùng
-$posts = $postController->getUserPosts($user->getId());
+$user_id = $_SESSION['user_id'];
+$postController = new PostController($conn);
+$posts = $postController->getUserPosts($user_id);
+
+include('../views/header.php');
+// Hiển thị thông báo thành công nếu có
+if (isset($_SESSION['errors']) && is_array($_SESSION['errors'])) {
+    foreach ($_SESSION['errors'] as $error) {
+        echo '<div style="color: ' . $error['color'] . ';">' . $error['message'] . '</div>';
+    }
+    unset($_SESSION['errors']); // Xóa session sau khi đã hiển thị
+}
 ?>
-
-<!-- Giao diện HTML cho trang dashboard -->
-<?php include('../app/views/header.php'); ?>
-
-<h1>Xin chào, <?php echo $user->getUsername(); ?>!</h1>
-<a href="add_post.php">Thêm bài viết mới</a>
-<table>
+<table id="dataTable">
     <tr>
-        <th>ID</th>
-        <th>Tiêu đề</th>
-        <th>Nội dung</th>
-        <th>Tùy chọn</th>
+        <th>STT</th>
+        <th>Title</th>
+        <th>Content</th>
+        <th>Action</th>
     </tr>
-    <?php foreach ($posts as $post) : ?>
+    <?php $stt = 1;
+
+    foreach ($posts as $post) { ?>
         <tr>
-            <td><?php echo $post->getId(); ?></td>
-            <td><?php echo $post->getTitle(); ?></td>
-            <td><?php echo $post->getContent(); ?></td>
+            <td><?php echo $stt++; ?></td>
+            <td><?php echo $post['title']; ?></td>
+            <td><?php echo $post['content']; ?></td>
             <td>
-                <a href="edit_post.php?id=<?php echo $post->getId(); ?>">Sửa</a>
-                <a href="delete_post.php?id=<?php echo $post->getId(); ?>">Xóa</a>
+                <a href="edit_post.php?id=<?php echo $post['id']; ?>">Sửa</a>
+                <a href="delete_post.php?id=<?php echo $post['id']; ?>">Xóa</a>
             </td>
         </tr>
-    <?php endforeach; ?>
+    <?php } ?>
 </table>
 
-<?php include('../app/views/footer.php'); ?>
+<?php include('../views/footer.php'); ?>

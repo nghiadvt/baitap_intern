@@ -1,25 +1,25 @@
 <?php
-class Post {
-    private $id;
-    private $title;
-    private $content;
+require_once('../traits/CRUDTrait.php');
+class Post
+{
+    use CRUDTrait;
 
-    public function __construct($id, $title, $content) {
-        $this->id = $id;
-        $this->title = $title;
-        $this->content = $content;
+    private $conn;
+    protected $table = 'posts';
+
+    public function __construct($conn)
+    {
+        $this->conn = $conn;
     }
 
-    // Getters
-    public function getId() {
-        return $this->id;
+    public function addPost($data)
+    {
+       
+        return $this->create($this->table, $data);
     }
 
-    public function getTitle() {
-        return $this->title;
-    }
-
-    public function getContent() {
-        return $this->content;
+    public function getPostsByUserId($user_id)
+    {
+        return $this->read($this->table, "user_id = $user_id");
     }
 }

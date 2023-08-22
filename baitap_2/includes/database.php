@@ -6,9 +6,10 @@ if ($conn) {
     $tables_to_delete = array("users", "posts");
 
     // Drop all tables in the database
+    
     // Disable foreign key checks temporarily
     $conn->query("SET FOREIGN_KEY_CHECKS = 0");
-    foreach ($tablesToDelete as $tableName) {
+    foreach ($tables_to_delete as $tableName) {
         // Xóa bảng
         $conn->query("DROP TABLE IF EXISTS $tableName");
     }

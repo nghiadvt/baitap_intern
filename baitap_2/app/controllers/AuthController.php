@@ -1,25 +1,55 @@
 <?php
 
 require_once('../models/user.php');
+require_once('../../includes/db_connection.php');
 
 class AuthController
 {
-    public function login($username, $password)
+    private $conn;
+
+    public function __construct($conn)
     {
+        $this->conn = $conn;
+    }
+
+    public function login($email, $password)
+    {
+        session_start();
+
         // Xử lý đăng nhập
         // (Sử dụng các hàm xử lý dữ liệu từ model)
 
-        // Tạm thời, giả sử có một người dùng có tên đăng nhập và mật khẩu cố định
-        $fixedUsername = 'admin';
-        $fixedPassword = password_hash('password', PASSWORD_DEFAULT);
+        if ($this->conn) {
+            $sql = "SELECT id, username, email, password FROM users WHERE email = ?";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+            $result = $stmt->get_result();
 
-        if ($username === $fixedUsername && password_verify($password, $fixedPassword)) {
-            // Đăng nhập thành công, trả về đối tượng User tương ứng
-            return new User(1, $fixedUsername, $fixedPassword);
-        } else {
-            // Đăng nhập thất bại
-            return false;
+            if ($result->num_rows > 0) {
+                $row = $result->fetch_assoc();
+                $hashedPassword = $row['password'];
+
+                if (password_verify($password, $hashedPassword)) {
+                    // Đăng nhập thành công
+                    $_SESSION['user_id'] = $row['id'];
+                    $_SESSION['username'] = $row['username'];
+                    // Đăng nhập thành công, trả về đối tượng User tương ứng
+                    // return new User($row['id'], $email, $password);
+
+                    header("Location: dashboard.php"); // Chuyển hướng đến trang dashboard hoặc trang khác
+                } else {
+                    // Đăng nhập thất bại, gửi thông báo lỗi
+                    $_SESSION["login_error"] = "Mật khẩu không chính xáac.";
+                }
+            } else {
+                // Không tìm thấy người dùng với email này
+                $_SESSION["login_error"] = "Người dùng không tồn tại!";
+            }
+            $stmt->close();
         }
+        header("Location: login.php");
+        exit();
     }
 
     public function logout()
